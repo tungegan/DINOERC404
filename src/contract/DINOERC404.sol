@@ -1,15 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-//import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-//import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-//import {ERC404} from "../ERC404.sol";
-//import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-
-
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "../ERC404.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {ERC404} from "../ERC404.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 contract DINOERC404 is Ownable, ERC404 {
@@ -18,9 +12,11 @@ contract DINOERC404 is Ownable, ERC404 {
     string memory symbol_,
     uint8 decimals_,
     address initialOwner_,
-    uint256 maxMint_
+    uint256 maxMint_,
+    address _recipient
   ) ERC404(name_, symbol_, decimals_) Ownable(initialOwner_) {
     MAX_MINT = maxMint_;
+    recipient = _recipient;
   }
 
   // Mapping to keep track of whether an address has minted
@@ -38,6 +34,7 @@ contract DINOERC404 is Ownable, ERC404 {
     // Events for tracking whitelist changes
     event WhitelistAdded(address indexed account);
     event WhitelistRemoved(address indexed account);
+    event Minted(address indexed account);
 
 
     function tokenURI(uint256 id_) public pure override returns (string memory) {
@@ -116,7 +113,7 @@ contract DINOERC404 is Ownable, ERC404 {
     }
 
     function mintERC20() external payable  {
-      require(totalSupply < MAX_MINT, "Max mint limit reached");
+      require(totalSupply <= MAX_MINT, "Max mint limit reached");
       require(!hasMinted[msg.sender], "Already minted");
       if (whitelist[msg.sender] || hasVoyageNft()) {
         // Ensure the contract receives the exact amount
@@ -129,6 +126,7 @@ contract DINOERC404 is Ownable, ERC404 {
         require(success, "Transfer failed");
         _mintERC20(msg.sender, 1);
         hasMinted[msg.sender] = true;
+        emit Minted(msg.sender);
       }
     }
 
