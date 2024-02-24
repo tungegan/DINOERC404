@@ -1,0 +1,139 @@
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+//import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+//import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+//import {ERC404} from "../ERC404.sol";
+//import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "../ERC404.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+
+contract DINOERC404 is Ownable, ERC404 {
+  constructor(
+    string memory name_,
+    string memory symbol_,
+    uint8 decimals_,
+    address initialOwner_,
+    uint256 maxMint_
+  ) ERC404(name_, symbol_, decimals_) Ownable(initialOwner_) {
+    MAX_MINT = maxMint_;
+  }
+
+  // Mapping to keep track of whether an address has minted
+    mapping(address => bool) private hasMinted;
+    mapping(address => bool) public whitelist;
+    uint256 public MAX_MINT;
+    address public VOYAGE = 0x0872ec4426103482a50f26Ffc32aCEfcec61b3c9;
+    IERC1155 erc1151 = IERC1155(VOYAGE);
+    // Address to receive the transferred funds
+    address public recipient;
+
+    // Amount to be transferred (0.0018 ETH in this case)
+    uint256 public transferAmount = 0.0018 ether;
+
+    // Events for tracking whitelist changes
+    event WhitelistAdded(address indexed account);
+    event WhitelistRemoved(address indexed account);
+
+
+    function tokenURI(uint256 id_) public pure override returns (string memory) {
+      return string.concat("https://example.com/token/", Strings.toString(id_));
+    }
+
+    function setERC721TransferExempt(
+      address account_,
+      bool value_
+    ) external onlyOwner {
+      _setERC721TransferExempt(account_, value_);
+    }
+
+    // Function to add multiple addresses to the whitelist in one transaction
+    // Takes an array of addresses to be whitelisted
+    function addToWhitelist(address[] calldata addresses) external onlyOwner {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            whitelist[addresses[i]] = true;
+            emit WhitelistAdded(addresses[i]);
+        }
+    }
+
+    // Function to remove addresses from the whitelist
+    // Takes an array of addresses to be removed
+    function removeFromWhitelist(address[] calldata addresses) external onlyOwner {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            if (whitelist[addresses[i]]) {
+                whitelist[addresses[i]] = false;
+                emit WhitelistRemoved(addresses[i]);
+            }
+        }
+    }
+
+    function createUserArray(uint256 size, address value) internal pure returns (address[] memory) {
+        address[] memory newArray = new address[](size);
+        for (uint256 i = 0; i < size; i++) {
+            newArray[i] = value;
+        }
+        return newArray;
+    }
+
+    function createDynamicArray(uint256 size) internal pure returns (uint256[] memory) {
+        uint256[] memory dynamicArray = new uint256[](size);
+        for (uint256 i = 0; i < size; i++) {
+            dynamicArray[i] = i + 1;
+        }
+
+        return dynamicArray;
+    }
+
+    // Check if user has at least one VOYAGE NFT
+    function hasVoyageNft() public view returns (bool) {
+        //uint256 supply = IERC1155.currentSupply();
+
+        // Create the accounts array filled with the caller's address
+        address[] memory accounts = createUserArray(5, msg.sender);
+
+        // Create the ids array with values from 1 to supply
+        uint256[] memory ids = createDynamicArray(5);
+
+        uint256[] memory balances = erc1151.balanceOfBatch(accounts, ids);
+
+        // Ensure valid input lengths
+        if (balances.length != accounts.length || balances.length != ids.length) {
+            revert("Invalid input lengths");
+        }
+
+        // Check for any non-zero balance
+        for (uint256 i = 0; i < balances.length; i++) {
+            if (balances[i] > 0) {
+                return true; // At least one VOYAGE NFT found
+            }
+        }
+
+        return false; // No VOYAGE NFTs found
+    }
+
+    function mintERC20() external payable  {
+      require(totalSupply < MAX_MINT, "Max mint limit reached");
+      require(!hasMinted[msg.sender], "Already minted");
+      if (whitelist[msg.sender] || hasVoyageNft()) {
+        // Ensure the contract receives the exact amount
+        require(msg.value == transferAmount, "Must send the exact amount (0.0018 ETH)");
+
+        // Transfer funds to recipient
+        (bool success,) = payable(recipient).call{value: transferAmount}("");
+
+        // Check if transfer succeeded
+        require(success, "Transfer failed");
+        _mintERC20(msg.sender, 1);
+        hasMinted[msg.sender] = true;
+      }
+    }
+
+    function updateTransferAmount(uint256 _newAmount) public onlyOwner {
+        transferAmount = _newAmount;
+    }
+
+}
