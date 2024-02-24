@@ -116,6 +116,7 @@ contract DINOERC404 is Ownable, ERC404 {
       require(totalSupply <= MAX_MINT, "Max mint limit reached");
       require(!hasMinted[msg.sender], "Already minted");
       if (whitelist[msg.sender] || hasVoyageNft()) {
+
         // Ensure the contract receives the exact amount
         require(msg.value == transferAmount, "Must send the exact amount (0.0018 ETH)");
 
