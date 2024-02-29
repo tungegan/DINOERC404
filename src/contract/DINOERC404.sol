@@ -15,7 +15,7 @@ contract DINOERC404 is Ownable, ERC404 {
     uint256 maxMint_,
     address _recipient
   ) ERC404(name_, symbol_, decimals_) Ownable(initialOwner_) {
-    MAX_MINT = maxMint_;
+    MAX_MINT = maxMint_ * 10 ** decimals;
     recipient = _recipient;
   }
 
@@ -116,7 +116,6 @@ contract DINOERC404 is Ownable, ERC404 {
       require(totalSupply <= MAX_MINT, "Max mint limit reached");
       require(!hasMinted[msg.sender], "Already minted");
       if (whitelist[msg.sender] || hasVoyageNft()) {
-
         // Ensure the contract receives the exact amount
         require(msg.value == transferAmount, "Must send the exact amount (0.0018 ETH)");
 
@@ -125,7 +124,7 @@ contract DINOERC404 is Ownable, ERC404 {
 
         // Check if transfer succeeded
         require(success, "Transfer failed");
-        _mintERC20(msg.sender, 1);
+        _mintERC20(msg.sender, 1 * 10 ** decimals);
         hasMinted[msg.sender] = true;
         emit Minted(msg.sender);
       }
