@@ -6,17 +6,17 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC404} from "../ERC404.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-contract DINOERC404 is Ownable, ERC404 {
+contract BOSERC404 is Ownable, ERC404 {
   constructor(
     string memory name_,
     string memory symbol_,
     uint8 decimals_,
     address initialOwner_,
-    uint256 maxMint_,
-    address _recipient
+    uint256 maxMint_
+    //address _recipient
   ) ERC404(name_, symbol_, decimals_) Ownable(initialOwner_) {
     MAX_MINT = maxMint_ * 10 ** decimals;
-    recipient = _recipient;
+    //recipient = _recipient;
   }
 
   // Mapping to keep track of whether an address has minted
@@ -38,7 +38,7 @@ contract DINOERC404 is Ownable, ERC404 {
 
 
     function tokenURI(uint256 id_) public pure override returns (string memory) {
-      return string.concat("https://example.com/token/", Strings.toString(id_));
+      return string.concat("https://bafybeicflld7mcl6or5tuteeujpmkxs6wqsvkwpdfjem532dobvgac6swq.ipfs.w3s.link/", Strings.toString(id_));
     }
 
     function setERC721TransferExempt(
@@ -112,10 +112,18 @@ contract DINOERC404 is Ownable, ERC404 {
         return false; // No VOYAGE NFTs found
     }
 
-    function mintERC20() external payable  {
+    function updateTransferAmount(uint256 _newAmount) public onlyOwner {
+        transferAmount = _newAmount;
+    }
+
+    function mintERC20() external payable {
       require(totalSupply <= MAX_MINT, "Max mint limit reached");
       require(!hasMinted[msg.sender], "Already minted");
-      if (whitelist[msg.sender] || hasVoyageNft()) {
+      if (whitelist[msg.sender]) {
+        // Mint for free if whitelisted
+        _mintERC20(msg.sender, 1 * 10 ** decimals);
+      } else if (hasVoyageNft()) {
+        // Existing logic for VOYAGE NFT holders with payment
         // Ensure the contract receives the exact amount
         require(msg.value == transferAmount, "Must send the exact amount (0.0018 ETH)");
 
@@ -125,13 +133,9 @@ contract DINOERC404 is Ownable, ERC404 {
         // Check if transfer succeeded
         require(success, "Transfer failed");
         _mintERC20(msg.sender, 1 * 10 ** decimals);
-        hasMinted[msg.sender] = true;
-        emit Minted(msg.sender);
       }
-    }
-
-    function updateTransferAmount(uint256 _newAmount) public onlyOwner {
-        transferAmount = _newAmount;
+      hasMinted[msg.sender] = true;
+      emit Minted(msg.sender);
     }
 
 }
