@@ -6,7 +6,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC404} from "../ERC404.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-contract BOSERC404 is Ownable, ERC404 {
+contract DINOERC404 is Ownable, ERC404 {
   constructor(
     string memory name_,
     string memory symbol_,
@@ -28,6 +28,9 @@ contract BOSERC404 is Ownable, ERC404 {
     // Address to receive the transferred funds
     address public recipient;
 
+    // URI for the token metadata
+    string private URI = "https://bafybeicflld7mcl6or5tuteeujpmkxs6wqsvkwpdfjem532dobvgac6swq.ipfs.w3s.link/";
+
     // Amount to be transferred (0.0018 ETH in this case)
     uint256 public transferAmount = 0.0018 ether;
 
@@ -36,9 +39,9 @@ contract BOSERC404 is Ownable, ERC404 {
     event WhitelistRemoved(address indexed account);
     event Minted(address indexed account);
 
-
-    function tokenURI(uint256 id_) public pure override returns (string memory) {
-      return string.concat("https://bafybeicflld7mcl6or5tuteeujpmkxs6wqsvkwpdfjem532dobvgac6swq.ipfs.w3s.link/", Strings.toString(id_));
+    function tokenURI(uint256 id_) public view override returns (string memory) {
+    // Concatenate the base URI with the token ID using Strings.toString
+    return string.concat(URI, Strings.toString(id_));
     }
 
     function setERC721TransferExempt(
@@ -138,4 +141,13 @@ contract BOSERC404 is Ownable, ERC404 {
       emit Minted(msg.sender);
     }
 
+    function setURI(string memory newURI) public onlyOwner {
+      require(bytes(newURI).length > 0, "URI cannot be empty");
+      URI = newURI;
+    }
+
+    // Check if user is whitelisted
+    function isWhitelisted(address account) public view returns (bool) {
+      return whitelist[account];
+    }
 }
