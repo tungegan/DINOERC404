@@ -16,6 +16,7 @@ contract DINOERC404 is Ownable, ERC404 {
     //address _recipient
   ) ERC404(name_, symbol_, decimals_) Ownable(initialOwner_) {
     MAX_MINT = maxMint_ * 10 ** decimals;
+    
     //recipient = _recipient;
   }
 
@@ -27,6 +28,8 @@ contract DINOERC404 is Ownable, ERC404 {
     IERC1155 erc1151 = IERC1155(VOYAGE);
     // Address to receive the transferred funds
     address public recipient;
+    uint256 public MAX_WHITELIST_SIZE = 800;
+    uint256 public WHITELIST_COUNT = 0;
 
     // URI for the token metadata
     string private URI = "https://bafybeicflld7mcl6or5tuteeujpmkxs6wqsvkwpdfjem532dobvgac6swq.ipfs.w3s.link/";
@@ -54,8 +57,10 @@ contract DINOERC404 is Ownable, ERC404 {
     // Function to add multiple addresses to the whitelist in one transaction
     // Takes an array of addresses to be whitelisted
     function addToWhitelist(address[] calldata addresses) external onlyOwner {
+        require(WHITELIST_COUNT <= MAX_WHITELIST_SIZE, "Whitelist limit reached");
         for (uint256 i = 0; i < addresses.length; i++) {
             whitelist[addresses[i]] = true;
+            WHITELIST_COUNT += 1;
             emit WhitelistAdded(addresses[i]);
         }
     }
